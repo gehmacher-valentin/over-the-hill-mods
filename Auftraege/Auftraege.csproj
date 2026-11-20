@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <AssemblyName>Auftraege</AssemblyName>
+    <Nullable>disable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <NoWarn>NETSDK1138;CS0618</NoWarn>
+    <SpielOrdner Condition="'$(SpielOrdner)' == ''">/mnt/Games/SteamLibrary/steamapps/common/over the hill</SpielOrdner>
+    <IL>$(SpielOrdner)/MelonLoader/Il2CppAssemblies</IL>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(SpielOrdner)/MelonLoader/net6/MelonLoader.dll" Private="false" />
+    <Reference Include="$(SpielOrdner)/MelonLoader/net6/Il2CppInterop.Runtime.dll" Private="false" />
+    <Reference Include="$(SpielOrdner)/MelonLoader/net6/Il2CppInterop.Common.dll" Private="false" />
+    <Reference Include="$(SpielOrdner)/MelonLoader/net6/0Harmony.dll" Private="false" />
+    <Reference Include="$(IL)/Il2Cppmscorlib.dll" Private="false" />
+    <Reference Include="$(IL)/Il2CppSystem.dll" Private="false" />
+    <Reference Include="$(IL)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(IL)/UnityEngine.UI.dll" Private="false" />
+    <Reference Include="$(IL)/UnityEngine.UIModule.dll" Private="false" />
+    <Reference Include="$(IL)/Unity.TextMeshPro.dll" Private="false" />
+    <Reference Include="$(IL)/Unity.Splines.dll" Private="false" />
+    <Reference Include="$(IL)/Unity.Mathematics.dll" Private="false" />
+    <Reference Include="$(IL)/UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="$(IL)/UnityEngine.PhysicsModule.dll" Private="false" />
+    <Reference Include="$(IL)/Unity.InputSystem.dll" Private="false" />
+    <Reference Include="$(IL)/Unity.Localization.dll" Private="false" />
+    <Reference Include="$(IL)/UnityEngine.UIElementsModule.dll" Private="false" />
+    <Reference Include="$(IL)/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="$(IL)/Il2CppFusion.Runtime.dll" Private="false" />
+    <Reference Include="$(IL)/Il2CppFusion.Common.dll" Private="false" />
+    <Reference Include="$(IL)/Il2CppFusion.Sockets.dll" Private="false" />
+  </ItemGroup>
+</Project>
