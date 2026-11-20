@@ -14,7 +14,7 @@ using MelonLoader;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(Auftraege.Mod), "Auftraege", "0.5.0", "Valentin Gehmacher")]
+[assembly: MelonInfo(typeof(Auftraege.Mod), "Auftraege", "0.5.1", "Valentin Gehmacher")]
 [assembly: MelonGame("Funselektor", "over the hill")]
 
 namespace Auftraege
@@ -67,8 +67,11 @@ namespace Auftraege
             if (_beendet) return;
             try
             {
-                if (_multiplayer.Value && !Netz.EmpfangAktiv && !Netz.IstEinzelspieler && Spiel.AlleOrte().Count > 0)
-                    Netz.EmpfangAktivieren(HarmonyInstance);
+                if (_multiplayer.Value && !Netz.IstEinzelspieler && Spiel.AlleOrte().Count > 0)
+                {
+                    Netz.Aktivieren();
+                    Netz.Tick();
+                }
                 MechanikerPruefen();
                 TastenPruefen();
                 _v.Tick();

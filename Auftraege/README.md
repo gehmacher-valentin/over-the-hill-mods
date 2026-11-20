@@ -25,7 +25,7 @@ Frachtaufträge zum Pebbles-Verdienen, allein oder im **Konvoi mit Freunden**.
 
 ## Multiplayer (Konvoi)
 
-**Alle Spieler brauchen die Mod.** Der Host verwaltet die Aufträge.
+**Alle Spieler brauchen die Mod (dieselbe Version)** und spielen über **Steam**. Mitspieler müssen auf Steam **befreundet** sein, darüber finden sich die Mods gegenseitig. Der Host verwaltet die Aufträge.
 
 - Alle sehen dieselben Angebote, und jeder kann sie beim Mechaniker annehmen.
 - **Mitfahrer ist, wer an der Hütte Fracht lädt.** Das geht auch noch, nachdem der Konvoi losgefahren ist, solange die Zeit läuft.

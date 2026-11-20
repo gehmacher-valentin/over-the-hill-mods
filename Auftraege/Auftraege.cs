@@ -121,7 +121,8 @@ namespace Auftraege
         readonly HashSet<int> _bezahlt = new(), _bonusBezahlt = new();
         int _startGemeldetFuer;
         float _lokalerStart = -1f, _endeSeit = -1f, _stillSeit = -1f, _kopfueberSeit = -1f;
-        bool _halloGesendet, _keineZieleGemeldet, _preiseGeloggt, _kopfueberGezaehlt;
+        int _halloFuer = -1;
+        bool _keineZieleGemeldet, _preiseGeloggt, _kopfueberGezaehlt;
         float _naechsterAngebotsVersuch;
         Vector3 _letztePos; float _letzteZeit = -1f;
         float _letzterAutoschaden = -1f, _schadenSammler;
@@ -143,7 +144,7 @@ namespace Auftraege
         {
             Angebote.Clear(); Aktiv = null; Teilnehmer.Clear(); Abgeliefert.Clear(); Raus.Clear();
             Phase = Phase.Anreise; Ergebnis = Ergebnis.Offen;
-            _endeSeit = -1f; _halloGesendet = false; _lokalerStart = -1f; _startGemeldetFuer = 0; _letzteZeit = -1f;
+            _endeSeit = -1f; _halloFuer = -1; _lokalerStart = -1f; _startGemeldetFuer = 0; _letzteZeit = -1f;
             _naechsterAngebotsVersuch = Time.realtimeSinceStartup + 5f; _keineZieleGemeldet = false;
             Spiel.CacheLeeren();
         }
@@ -158,10 +159,11 @@ namespace Auftraege
 
         public void Tick()
         {
-            if (!Netz.IstLeiter && !_halloGesendet && Netz.Runner != null)
+            // Hallo an den Host, sobald (wieder) eine Verbindung zu ihm besteht -> er schickt den Stand
+            if (!Netz.IstLeiter && Netz.LeiterVerbindungen > 0 && _halloFuer != Netz.LeiterVerbindungen)
             {
+                _halloFuer = Netz.LeiterVerbindungen;
                 Netz.AnLeiter(Paket(Nachricht.Hallo, _ => { }));
-                _halloGesendet = true;
             }
 
             Sensor();
