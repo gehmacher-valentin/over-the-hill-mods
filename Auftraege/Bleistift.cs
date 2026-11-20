@@ -31,7 +31,7 @@ namespace Auftraege
                     float x = mitte + Mathf.Cos(th) * r, y = mitte + Mathf.Sin(th) * r;
                     // Druck: an den Enden schwächer und dünner
                     float druck = Mathf.Clamp01(Mathf.Min(u, 1f - u) * 9f);
-                    float breite = 3.0f + 3.0f * druck + 1.0f * Mathf.Sin(th * 3f + 1.3f);
+                    float breite = 5.0f + 5.0f * druck + 1.5f * Mathf.Sin(th * 3f + 1.3f);
                     Stempel(alpha, G, x, y, breite, 0.55f + 0.45f * druck, rnd);
                 }
                 var tex = new Texture2D(G, G, TextureFormat.RGBA32, true) { name = "Auftraege_Bleistiftkreis", wrapMode = TextureWrapMode.Clamp };

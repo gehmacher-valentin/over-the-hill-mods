@@ -12,9 +12,10 @@ using System.Linq;
 using Il2Cpp;
 using MelonLoader;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(Auftraege.Mod), "Auftraege", "0.5.2", "Valentin Gehmacher")]
+[assembly: MelonInfo(typeof(Auftraege.Mod), "Auftraege", "0.5.3", "Valentin Gehmacher")]
 [assembly: MelonGame("Funselektor", "over the hill")]
 
 namespace Auftraege
@@ -23,7 +24,7 @@ namespace Auftraege
     {
         const float MechanikerRadiusM = 30f;
         const float StillstandMps = 1.5f;
-        const float KreisGroesse = 6.4f;     // Bleistiftkreis so groß, dass er das Ortssymbol umrahmt
+        const float KreisGroesse = 1.0f;     // Bleistiftkreis so groß, dass er das Ortssymbol umrahmt
 
         Auftragsverwaltung _v;
         readonly Anzeige _anzeige = new();
@@ -148,24 +149,39 @@ namespace Auftraege
             catch (Exception e) { LoggerInstance.Warning("Kartenmarker nicht möglich: " + e.Message); }
         }
 
-        /// Das Kartensymbol unseres Markers vergrößern, damit der Bleistiftkreis das Symbol
-        /// des Ortes umrahmt (das Spiel legt alle Symbole gleich groß an).
+        /// Unser Kartensymbol in einen großen Rotstiftkreis verwandeln. Die Karte setzt Größe und Farbe
+        /// ihrer Symbole selbst (Zoom, Stilfarben) – deshalb zeichnen wir den Kreis als eigenes Kind-Bild,
+        /// das die Karte nicht anfasst, und blenden das eigentliche Symbol aus. Außerdem über die anderen
+        /// Symbole legen, damit der Kreis nicht vom Orts-Symbol verdeckt wird.
         void KartenIconAnpassen()
         {
             if (_kartenMarker == null || Time.realtimeSinceStartup < _naechsteIconPruefung) return;
-            _naechsteIconPruefung = Time.realtimeSinceStartup + 1f;
+            _naechsteIconPruefung = Time.realtimeSinceStartup + 0.5f;
             try
             {
                 var kreis = Bleistift.Kreis;
                 foreach (var icon in UnityEngine.Object.FindObjectsOfType<MapIcon>())
                 {
                     if (icon == null || icon.iconImage == null || icon.iconImage.sprite != kreis) continue;
-                    if (icon.rectTransform.localScale.x < KreisGroesse - 0.01f)
-                    {
-                        icon.rectTransform.localScale = Vector3.one * KreisGroesse;
-                        icon.SetBackgroundVisibility(false);
-                        icon.iconImage.raycastTarget = false;
-                    }
+                    icon.SetBackgroundVisibility(false);
+                    icon.iconImage.enabled = false;
+                    icon.iconImage.raycastTarget = false;
+                    var rt = icon.rectTransform;
+                    rt.SetAsLastSibling();
+                    if (rt.Find("Auftraege_Kreis") != null) continue;
+
+                    var go = new GameObject("Auftraege_Kreis");
+                    var krt = go.AddComponent<RectTransform>();
+                    krt.SetParent(rt, false);
+                    krt.anchorMin = krt.anchorMax = krt.pivot = new Vector2(0.5f, 0.5f);
+                    krt.anchoredPosition = Vector2.zero;
+                    float basis = Mathf.Max(rt.rect.width, rt.rect.height, 40f);
+                    krt.sizeDelta = Vector2.one * basis * KreisGroesse;
+                    var img = go.AddComponent<Image>();
+                    img.sprite = kreis;
+                    img.color = Color.white;
+                    img.raycastTarget = false;
+                    LoggerInstance.Msg($"[Karte] Kreis angelegt ({basis:F0} px × {KreisGroesse})");
                 }
             }
             catch (Exception e) { LoggerInstance.Warning("Kartensymbol: " + e.Message); _naechsteIconPruefung += 30f; }
