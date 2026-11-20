@@ -14,7 +14,7 @@ using MelonLoader;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(Auftraege.Mod), "Auftraege", "0.5.1", "Valentin Gehmacher")]
+[assembly: MelonInfo(typeof(Auftraege.Mod), "Auftraege", "0.5.2", "Valentin Gehmacher")]
 [assembly: MelonGame("Funselektor", "over the hill")]
 
 namespace Auftraege
@@ -23,7 +23,7 @@ namespace Auftraege
     {
         const float MechanikerRadiusM = 30f;
         const float StillstandMps = 1.5f;
-        const float KreisGroesse = 3.2f;     // Bleistiftkreis so groß, dass er das Ortssymbol umrahmt
+        const float KreisGroesse = 6.4f;     // Bleistiftkreis so groß, dass er das Ortssymbol umrahmt
 
         Auftragsverwaltung _v;
         readonly Anzeige _anzeige = new();
@@ -223,9 +223,29 @@ namespace Auftraege
             if (_amMechaniker && _v.Aktiv == null) _anzeige.Brett.Zeigen("Frachtaufträge", BrettText());
             else _anzeige.Brett.Verstecken();
 
+            // Abrechnung nach dem Abliefern 25 s lang zeigen
+            if (_v.AbrechnungSeit >= 0 && Time.realtimeSinceStartup - _v.AbrechnungSeit < 25f && _v.AbrechnungPosten.Count > 0)
+                _anzeige.Abrechnung.Zeigen(_v.AbrechnungTitel, AbrechnungText());
+            else _anzeige.Abrechnung.Verstecken();
+
             // Beim Laden/Abladen den Stand automatisch zeigen
             if (_standOffen || _v.LadeFortschritt > 0) _anzeige.Stand.Zeigen(StandTitel(), StandText());
             else _anzeige.Stand.Verstecken();
+        }
+
+        string AbrechnungText()
+        {
+            var z = new List<string>();
+            foreach (var (text, betrag) in _v.AbrechnungPosten)
+            {
+                string farbe = betrag < 0 ? Rot : text.StartsWith("Gruppenbonus") ? Gruen : "#FFFFFF";
+                z.Add($"{text}<pos=82%><color={farbe}>{(betrag > 0 ? "+" : "−")}{Mathf.Abs(betrag)}</color>");
+            }
+            int summe = _v.AbrechnungPosten.Sum(p => p.betrag);
+            z.Add($"<color={Grau}>────────────────────────────</color>");
+            z.Add($"<b>Verdient</b><pos=82%><color={Gold}><b>{summe} Pebbles</b></color>");
+            if (!string.IsNullOrEmpty(_v.AbrechnungFusszeile)) z.Add($"<size=80%><color={Grau}>{_v.AbrechnungFusszeile}</color></size>");
+            return string.Join("\n", z);
         }
 
         string BrettText()

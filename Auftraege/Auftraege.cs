@@ -94,6 +94,12 @@ namespace Auftraege
         public int Grundbetrag = 3;
         public float PebblesProWegKm = 3.5f;    // pro km Strecke über Wege
         public float PebblesProLuftKm = 7f;     // pro km Luftlinie querfeldein (anstrengender)
+        // Abrechnung des letzten Auftrags (für die Anzeige)
+        public string AbrechnungTitel;
+        public readonly List<(string text, int betrag)> AbrechnungPosten = new();
+        public float AbrechnungSeit = -1f;
+        public string AbrechnungFusszeile;
+
         public float Gruppenbonus = 0.15f;      // pro zusätzlichem Spieler, der abliefert
         public float MindestLohnAnteil = 0.2f;  // auch bei fast kaputter Fracht
         const float AnzeigeNachEndeS = 8f;
@@ -309,9 +315,32 @@ namespace Auftraege
             MelonLogger.Msg($"[Aufträge] Statistik ({(Aktiv.Weg ? "Weg" : "querfeldein")}): Luftlinie {Aktiv.DistanzM:F0} m, Route {Aktiv.StreckeM:F0} m, gefahren {_gefahrenM:F0} m, " +
                             $"Fahrzeit {fahrzeit:F0} s von {Aktiv.ZeitS} s, Schnitt {_gefahrenM / Mathf.Max(1, fahrzeit) * 3.6f:F1} km/h");
             if (Spiel.PebblesGutschreiben(lohn))
+            {
                 Meldung?.Invoke($"{Aktiv.Fracht} abgeliefert ({Ladung:F0} %) – +{lohn} Pebbles");
+                AbrechnungErstellen(lohn, fahrzeit);
+            }
             Netz.AnLeiter(Paket(Nachricht.Abgeliefert, w => w.Write(Aktiv.Id)));
         }
+
+        void AbrechnungErstellen(int lohn, float fahrzeit)
+        {
+            var a = Aktiv;
+            var f = Fracht.Nach(a.Fracht);
+            int basis = Mathf.RoundToInt(a.Weg ? Grundbetrag + a.StreckeM / 1000f * PebblesProWegKm
+                                               : Grundbetrag + a.DistanzM / 1000f * PebblesProLuftKm);
+            basis = Mathf.Clamp(basis, 1, a.Lohn);
+            AbrechnungPosten.Clear();
+            AbrechnungTitel = $"Abrechnung: {a.Fracht}";
+            AbrechnungPosten.Add((a.Weg ? $"Transport {a.StreckeM / 1000f:F1} km über Wege" : $"Transport {a.DistanzM / 1000f:F1} km querfeldein", basis));
+            if (a.Lohn - basis != 0)
+                AbrechnungPosten.Add(($"Frachtzuschlag ({(f.Empfindlichkeit >= 1.2f ? "empfindlich" : a.Eilig ? "eilig" : "Fracht")}, ×{f.Lohnfaktor:0.##})", a.Lohn - basis));
+            if (lohn - a.Lohn != 0)
+                AbrechnungPosten.Add((Ladung / 100f < MindestLohnAnteil ? $"Frachtschaden ({Ladung:F0} % heil, Mindestlohn)" : $"Frachtschaden ({Ladung:F0} % heil)", lohn - a.Lohn));
+            AbrechnungFusszeile = $"Fahrzeit {Uhr(fahrzeit)} von {Uhr(a.ZeitS)} · {_gefahrenM / 1000f:F1} km gefahren";
+            AbrechnungSeit = Time.realtimeSinceStartup;
+        }
+
+        static string Uhr(float s) { int t = Mathf.Max(0, Mathf.RoundToInt(s)); return $"{t / 60}:{t % 60:00}"; }
 
         static float Flach(Vector3 d) { d.y = 0; return d.magnitude; }
 
@@ -559,7 +588,12 @@ namespace Auftraege
                     if (weitere > 0 && Abgeliefert.Contains(lokal) && _bonusBezahlt.Add(Aktiv.Id))
                     {
                         int bonus = Mathf.Max(1, Mathf.RoundToInt(Aktiv.Lohn * Gruppenbonus * weitere));
-                        if (Spiel.PebblesGutschreiben(bonus)) Meldung?.Invoke($"Auftrag erledigt! Gruppenbonus +{bonus} Pebbles");
+                        if (Spiel.PebblesGutschreiben(bonus))
+                        {
+                            Meldung?.Invoke($"Auftrag erledigt! Gruppenbonus +{bonus} Pebbles");
+                            AbrechnungPosten.Add(($"Gruppenbonus ({weitere} {(weitere == 1 ? "Mitfahrer" : "Mitfahrer")} × {Gruppenbonus * 100:F0} %)", bonus));
+                            AbrechnungSeit = Time.realtimeSinceStartup;
+                        }
                     }
                     else if (!Abgeliefert.Contains(lokal)) Meldung?.Invoke("Auftrag beendet – deine Fracht kam nicht an");
                     break;

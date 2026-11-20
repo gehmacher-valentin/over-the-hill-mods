@@ -35,7 +35,7 @@ namespace Auftraege
         GameObject _canvas;
         TMP_FontAsset _schrift;
         float _naechsteSchriftSuche;
-        public Kasten Brett, Stand, Meldung;
+        public Kasten Brett, Stand, Meldung, Abrechnung;
 
         public bool Bereit => _canvas != null;
 
@@ -71,13 +71,14 @@ namespace Auftraege
             Meldung = KastenBauen(spalte.transform, "Meldung", 19, false);
             Brett = KastenBauen(spalte.transform, "Brett", 17, true);
             Stand = KastenBauen(spalte.transform, "Stand", 17, true);
+            Abrechnung = KastenBauen(spalte.transform, "Abrechnung", 17, true);
             SchriftUebernehmen();
         }
 
         public void Abbauen()
         {
             if (_canvas != null) Object.Destroy(_canvas);
-            _canvas = null; Brett = Stand = Meldung = null;
+            _canvas = null; Brett = Stand = Meldung = Abrechnung = null;
         }
 
         Kasten KastenBauen(Transform eltern, string name, float textGroesse, bool mitTitel)

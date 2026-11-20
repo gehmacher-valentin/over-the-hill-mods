@@ -1,4 +1,4 @@
-// Handgezeichneter Bleistiftkreis als Sprite (für den Kartenmarker).
+// Handgezeichneter Rotstiftkreis als Sprite (für den Kartenmarker).
 // Ein etwas unregelmäßiger Graphitstrich, der sich am Ende überlappt, mit Körnung
 // und schwächerem Druck an Anfang und Ende. Innen durchsichtig.
 
@@ -18,7 +18,7 @@ namespace Auftraege
                 const int G = 256;
                 var alpha = new float[G * G];
                 var rnd = new System.Random(7);
-                float R = G * 0.40f, mitte = G / 2f;
+                float R = G * 0.38f, mitte = G / 2f;
                 float a1 = 0.7f, a2 = 2.1f, start = -0.9f;
                 const float umlauf = Mathf.PI * 2f * 1.12f;   // leicht überlappend
                 const int schritte = 2600;
@@ -31,16 +31,16 @@ namespace Auftraege
                     float x = mitte + Mathf.Cos(th) * r, y = mitte + Mathf.Sin(th) * r;
                     // Druck: an den Enden schwächer und dünner
                     float druck = Mathf.Clamp01(Mathf.Min(u, 1f - u) * 9f);
-                    float breite = 2.0f + 2.2f * druck + 0.8f * Mathf.Sin(th * 3f + 1.3f);
+                    float breite = 3.0f + 3.0f * druck + 1.0f * Mathf.Sin(th * 3f + 1.3f);
                     Stempel(alpha, G, x, y, breite, 0.55f + 0.45f * druck, rnd);
                 }
                 var tex = new Texture2D(G, G, TextureFormat.RGBA32, true) { name = "Auftraege_Bleistiftkreis", wrapMode = TextureWrapMode.Clamp };
-                var farbe = new Color(0.17f, 0.16f, 0.15f);
+                var farbe = new Color(0.78f, 0.12f, 0.10f); // Rotstift
                 var px = new Color32[G * G];
                 for (int i = 0; i < px.Length; i++)
                 {
                     float a = Mathf.Clamp01(alpha[i]);
-                    px[i] = new Color(farbe.r, farbe.g, farbe.b, a * 0.92f);
+                    px[i] = new Color(farbe.r, farbe.g, farbe.b, a * 0.95f);
                 }
                 tex.SetPixels32(px);
                 tex.Apply(true, true);
