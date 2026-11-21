@@ -67,5 +67,43 @@ namespace Auftraege
                     alpha[idx] = alpha[idx] + a * (1f - alpha[idx]); // Striche überlagern sich wie Graphit
                 }
         }
+
+        // ---------------- Nummernpunkte für die Angebote ----------------
+        // Start: roter Punkt mit weißem Rand (Zahl weiß). Ziel: weißer Punkt mit rotem Rand (Zahl rot).
+        public static readonly Color Rot = new(0.78f, 0.12f, 0.10f);
+        static Texture2D _startTex, _zielTex;
+
+        /// Jeder Aufruf liefert ein eigenes Sprite-Objekt (zur Wiedererkennung auf der Karte).
+        public static Sprite Punkt(bool ziel)
+        {
+            ref var tex = ref ziel ? ref _zielTex : ref _startTex;
+            if (tex == null) tex = PunktTextur(ziel);
+            var sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            sp.name = ziel ? "Auftraege_Zielpunkt" : "Auftraege_Startpunkt";
+            return sp;
+        }
+
+        static Texture2D PunktTextur(bool ziel)
+        {
+            const int G = 128;
+            float r = G * 0.46f, rand = G * 0.09f, m = (G - 1) / 2f;
+            var innen = ziel ? Color.white : Rot;
+            var aussen = ziel ? Rot : Color.white;
+            var px = new Color[G * G];
+            for (int y = 0; y < G; y++)
+                for (int x = 0; x < G; x++)
+                {
+                    float d = Mathf.Sqrt((x - m) * (x - m) + (y - m) * (y - m));
+                    float a = Mathf.Clamp01(r - d + 0.5f);               // weiche Außenkante
+                    float t = Mathf.Clamp01(d - (r - rand) + 0.5f);      // 0 = innen, 1 = Rand
+                    var c = Color.Lerp(innen, aussen, t);
+                    c.a = a;
+                    px[y * G + x] = c;
+                }
+            var tex = new Texture2D(G, G, TextureFormat.RGBA32, true) { name = ziel ? "Auftraege_Zielpunkt" : "Auftraege_Startpunkt", wrapMode = TextureWrapMode.Clamp };
+            tex.SetPixels(px);
+            tex.Apply(true, true);
+            return tex;
+        }
     }
 }

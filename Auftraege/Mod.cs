@@ -22,7 +22,7 @@ namespace Auftraege
 {
     public class Mod : MelonMod
     {
-        public const string Version = "0.5.5";
+        public const string Version = "0.5.6";
 
         const float MechanikerRadiusM = 30f;
         const float StillstandMps = 1.5f;
@@ -37,6 +37,11 @@ namespace Auftraege
         GameObject _strahl, _kartenMarker;
         string _markiert = "";
         float _naechsteIconPruefung;
+
+        // Angebots-Punkte auf der Karte (beim Mechaniker): Sprite -> (Nummer, Ziel?, Versatz)
+        readonly List<GameObject> _angebotsMarker = new();
+        readonly Dictionary<IntPtr, (int nr, bool ziel, int versatz)> _punktInfo = new();
+        string _angebotsSchluessel = "";
         MelonPreferences_Entry<bool> _multiplayer;
 
         public override void OnInitializeMelon()
@@ -80,6 +85,7 @@ namespace Auftraege
                 TastenPruefen();
                 _v.Tick();
                 MarkierungAktualisieren();
+                AngebotsMarkerAktualisieren();
                 KartenIconAnpassen();
                 AnzeigeAktualisieren();
             }
@@ -158,14 +164,16 @@ namespace Auftraege
         /// Symbole legen, damit der Kreis nicht vom Orts-Symbol verdeckt wird.
         void KartenIconAnpassen()
         {
-            if (_kartenMarker == null || Time.realtimeSinceStartup < _naechsteIconPruefung) return;
+            if ((_kartenMarker == null && _angebotsMarker.Count == 0) || Time.realtimeSinceStartup < _naechsteIconPruefung) return;
             _naechsteIconPruefung = Time.realtimeSinceStartup + 0.5f;
             try
             {
                 var kreis = Bleistift.Kreis;
                 foreach (var icon in UnityEngine.Object.FindObjectsOfType<MapIcon>())
                 {
-                    if (icon == null || icon.iconImage == null || icon.iconImage.sprite != kreis) continue;
+                    if (icon == null || icon.iconImage == null || icon.iconImage.sprite == null) continue;
+                    if (_punktInfo.TryGetValue(icon.iconImage.sprite.Pointer, out var info)) { NummernPunktAnpassen(icon, info); continue; }
+                    if (icon.iconImage.sprite != kreis) continue;
                     icon.SetBackgroundVisibility(false);
                     icon.iconImage.enabled = false;
                     icon.iconImage.raycastTarget = false;
@@ -188,6 +196,84 @@ namespace Auftraege
                 }
             }
             catch (Exception e) { LoggerInstance.Warning("Kartensymbol: " + e.Message); _naechsteIconPruefung += 30f; }
+        }
+
+        /// Beim Mechaniker: Start (roter Punkt) und Ziel (weißer Punkt) jedes Angebots mit seiner Nummer
+        /// auf der Karte zeigen. Verschwinden, sobald man wegfährt oder einen Auftrag annimmt.
+        void AngebotsMarkerAktualisieren()
+        {
+            bool zeigen = _amMechaniker && _v.Aktiv == null && _v.Angebote.Count > 0;
+            string schluessel = zeigen ? string.Join(",", _v.Angebote.Select(a => a.Id)) : "";
+            if (schluessel == _angebotsSchluessel) return;
+            _angebotsSchluessel = schluessel;
+
+            foreach (var go in _angebotsMarker) if (go != null) UnityEngine.Object.Destroy(go);
+            _angebotsMarker.Clear();
+            _punktInfo.Clear();
+            if (!zeigen) return;
+
+            try
+            {
+                var belegt = new List<Vector3>(); // gleiche Orte (z. B. zwei Angebote ab derselben Hütte) nebeneinander
+                for (int i = 0; i < _v.Angebote.Count && i < 9; i++)
+                {
+                    var a = _v.Angebote[i];
+                    foreach (var (pos, ziel) in new[] { (a.StartPos, false), (a.ZielPos, true) })
+                    {
+                        int versatz = belegt.Count(b => (b - pos).sqrMagnitude < 40f * 40f);
+                        belegt.Add(pos);
+                        var sp = Bleistift.Punkt(ziel);
+                        _punktInfo[sp.Pointer] = (i + 1, ziel, versatz);
+                        var go = new GameObject($"Auftraege_Angebot{i + 1}{(ziel ? "Ziel" : "Start")}");
+                        go.transform.position = pos;
+                        var m = go.AddComponent<MapTrackedTransform>();
+                        m.SetIcon(sp);
+                        m.SetUseBackground(false);
+                        m.VisibleOnMap = true;
+                        _angebotsMarker.Add(go);
+                    }
+                }
+                _naechsteIconPruefung = 0;
+            }
+            catch (Exception e) { LoggerInstance.Warning("Angebots-Marker nicht möglich: " + e.Message); }
+        }
+
+        /// Nummernpunkt als eigenes Bild mit Zahl, als „Abzeichen“ oben rechts neben dem Ortssymbol,
+        /// damit das Symbol selbst sichtbar bleibt.
+        void NummernPunktAnpassen(MapIcon icon, (int nr, bool ziel, int versatz) info)
+        {
+            icon.SetBackgroundVisibility(false);
+            icon.iconImage.enabled = false;
+            icon.iconImage.raycastTarget = false;
+            var rt = icon.rectTransform;
+            rt.SetAsLastSibling();
+            if (rt.Find("Auftraege_Nummer") != null) return;
+
+            float basis = Mathf.Max(rt.rect.width, rt.rect.height, 40f);
+            float groesse = basis * 0.62f;
+            var go = new GameObject("Auftraege_Nummer");
+            var krt = go.AddComponent<RectTransform>();
+            krt.SetParent(rt, false);
+            krt.anchorMin = krt.anchorMax = krt.pivot = new Vector2(0.5f, 0.5f);
+            krt.anchoredPosition = new Vector2(basis * 0.42f + info.versatz * groesse * 0.95f, basis * 0.42f);
+            krt.sizeDelta = Vector2.one * groesse;
+            var img = go.AddComponent<Image>();
+            img.sprite = icon.iconImage.sprite;
+            img.raycastTarget = false;
+
+            var tgo = new GameObject("Zahl");
+            var trt = tgo.AddComponent<RectTransform>();
+            trt.SetParent(krt, false);
+            trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
+            trt.offsetMin = trt.offsetMax = Vector2.zero;
+            var t = tgo.AddComponent<Il2CppTMPro.TextMeshProUGUI>();
+            if (_anzeige.Schrift != null) t.font = _anzeige.Schrift;
+            t.text = info.nr.ToString();
+            t.fontSize = groesse * 0.68f;
+            t.fontStyle = Il2CppTMPro.FontStyles.Bold;
+            t.alignment = Il2CppTMPro.TextAlignmentOptions.Center;
+            t.color = info.ziel ? Bleistift.Rot : Color.white;
+            t.raycastTarget = false;
         }
 
         /// Leuchtring am Boden im Stil des Spiels: Kopie des CylinderMarkers eines Ortes
@@ -225,6 +311,8 @@ namespace Auftraege
         {
             if (_strahl != null) UnityEngine.Object.Destroy(_strahl);
             if (_kartenMarker != null) UnityEngine.Object.Destroy(_kartenMarker);
+            foreach (var go in _angebotsMarker) if (go != null) UnityEngine.Object.Destroy(go);
+            _angebotsMarker.Clear(); _punktInfo.Clear(); _angebotsSchluessel = "";
             _strahl = null; _kartenMarker = null; _markiert = "";
         }
 

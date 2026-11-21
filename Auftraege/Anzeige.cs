@@ -34,6 +34,7 @@ namespace Auftraege
 
         GameObject _canvas;
         TMP_FontAsset _schrift;
+        public TMP_FontAsset Schrift => _schrift;
         float _naechsteSchriftSuche;
         public Kasten Brett, Stand, Meldung, Abrechnung;
 
@@ -145,7 +146,7 @@ namespace Auftraege
                 break;
             }
             if (_schrift == null) return;
-            foreach (var k in new[] { Brett, Stand, Meldung })
+            foreach (var k in new[] { Brett, Stand, Meldung, Abrechnung })
             {
                 k.Titel.font = _schrift;
                 k.Text.font = _schrift;
