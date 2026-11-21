@@ -1,4 +1,4 @@
-// Handgezeichneter Rotstiftkreis als Sprite (für den Kartenmarker).
+// Handgezeichneter Buntstiftkreis als Sprite (rot/blau/grün) (für den Kartenmarker).
 // Ein etwas unregelmäßiger Graphitstrich, der sich am Ende überlappt, mit Körnung
 // und schwächerem Druck an Anfang und Ende. Innen durchsichtig.
 
@@ -8,16 +8,39 @@ namespace Auftraege
 {
     internal static class Bleistift
     {
-        static Sprite _kreis;
-
-        public static Sprite Kreis
+        // Drei Stiftfarben – eine pro Angebot. Die Farbe bleibt nach dem Annehmen erhalten
+        // (Kartenkreis und Leuchtring am Boden).
+        public static readonly Color[] Stifte =
         {
-            get
+            new(0.80f, 0.13f, 0.10f),   // Rot
+            new(0.13f, 0.38f, 0.85f),   // Blau
+            new(0.10f, 0.58f, 0.22f),   // Grün
+        };
+        public static readonly string[] StiftHex = { "#E0473D", "#4C86F0", "#3DBA5C" };
+        public static readonly Color[] Leuchten =
+        {
+            new(1f, 0.28f, 0.22f, 1f),
+            new(0.30f, 0.58f, 1f, 1f),
+            new(0.32f, 0.92f, 0.40f, 1f),
+        };
+
+        static readonly Sprite[] _kreise = new Sprite[3];
+
+        public static bool IstKreis(Sprite sp)
+        {
+            if (sp == null) return false;
+            foreach (var k in _kreise) if (k != null && k.Pointer == sp.Pointer) return true;
+            return false;
+        }
+
+        public static Sprite Kreis(int farbe)
+        {
+            farbe = ((farbe % 3) + 3) % 3;
             {
-                if (_kreis != null) return _kreis;
+                if (_kreise[farbe] != null) return _kreise[farbe];
                 const int G = 256;
                 var alpha = new float[G * G];
-                var rnd = new System.Random(7);
+                var rnd = new System.Random(7 + farbe);
                 float R = G * 0.38f, mitte = G / 2f;
                 float a1 = 0.7f, a2 = 2.1f, start = -0.9f;
                 const float umlauf = Mathf.PI * 2f * 1.12f;   // leicht überlappend
@@ -35,18 +58,18 @@ namespace Auftraege
                     Stempel(alpha, G, x, y, breite, 0.55f + 0.45f * druck, rnd);
                 }
                 var tex = new Texture2D(G, G, TextureFormat.RGBA32, true) { name = "Auftraege_Bleistiftkreis", wrapMode = TextureWrapMode.Clamp };
-                var farbe = new Color(0.78f, 0.12f, 0.10f); // Rotstift
+                var stift = Stifte[farbe];
                 var px = new Color32[G * G];
                 for (int i = 0; i < px.Length; i++)
                 {
                     float a = Mathf.Clamp01(alpha[i]);
-                    px[i] = new Color(farbe.r, farbe.g, farbe.b, a * 0.95f);
+                    px[i] = new Color(stift.r, stift.g, stift.b, a * 0.95f);
                 }
                 tex.SetPixels32(px);
                 tex.Apply(true, true);
-                _kreis = Sprite.Create(tex, new Rect(0, 0, G, G), new Vector2(0.5f, 0.5f), 100f);
-                _kreis.name = "Auftraege_Bleistiftkreis";
-                return _kreis;
+                var sp = Sprite.Create(tex, new Rect(0, 0, G, G), new Vector2(0.5f, 0.5f), 100f);
+                sp.name = "Auftraege_Bleistiftkreis" + farbe;
+                return _kreise[farbe] = sp;
             }
         }
 
@@ -68,42 +91,5 @@ namespace Auftraege
                 }
         }
 
-        // ---------------- Nummernpunkte für die Angebote ----------------
-        // Start: roter Punkt mit weißem Rand (Zahl weiß). Ziel: weißer Punkt mit rotem Rand (Zahl rot).
-        public static readonly Color Rot = new(0.78f, 0.12f, 0.10f);
-        static Texture2D _startTex, _zielTex;
-
-        /// Jeder Aufruf liefert ein eigenes Sprite-Objekt (zur Wiedererkennung auf der Karte).
-        public static Sprite Punkt(bool ziel)
-        {
-            ref var tex = ref ziel ? ref _zielTex : ref _startTex;
-            if (tex == null) tex = PunktTextur(ziel);
-            var sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
-            sp.name = ziel ? "Auftraege_Zielpunkt" : "Auftraege_Startpunkt";
-            return sp;
-        }
-
-        static Texture2D PunktTextur(bool ziel)
-        {
-            const int G = 128;
-            float r = G * 0.46f, rand = G * 0.09f, m = (G - 1) / 2f;
-            var innen = ziel ? Color.white : Rot;
-            var aussen = ziel ? Rot : Color.white;
-            var px = new Color[G * G];
-            for (int y = 0; y < G; y++)
-                for (int x = 0; x < G; x++)
-                {
-                    float d = Mathf.Sqrt((x - m) * (x - m) + (y - m) * (y - m));
-                    float a = Mathf.Clamp01(r - d + 0.5f);               // weiche Außenkante
-                    float t = Mathf.Clamp01(d - (r - rand) + 0.5f);      // 0 = innen, 1 = Rand
-                    var c = Color.Lerp(innen, aussen, t);
-                    c.a = a;
-                    px[y * G + x] = c;
-                }
-            var tex = new Texture2D(G, G, TextureFormat.RGBA32, true) { name = ziel ? "Auftraege_Zielpunkt" : "Auftraege_Startpunkt", wrapMode = TextureWrapMode.Clamp };
-            tex.SetPixels(px);
-            tex.Apply(true, true);
-            return tex;
-        }
     }
 }

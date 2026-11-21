@@ -8,8 +8,8 @@ Frachtaufträge zum Pebbles-Verdienen, allein oder im **Konvoi mit Freunden**.
 
 1. **Beim Mechaniker (Crazy Günther) anhalten.** Links erscheint das Brett „Frachtaufträge“ mit 3 Angeboten.
    **1 / 2 / 3** nimmt einen Auftrag an, **0** holt neue Angebote.
-   Auf der Karte stehen dann Start (roter Punkt) und Ziel (weißer Punkt) jedes Angebots mit seiner Nummer.
-2. **Zur Start-Hütte**, entweder hinfahren oder über die Karte schnellreisen. Die Hütte ist mit einem gelben Ring am Boden und einem roten Kreis auf der Karte markiert.
+   Auf der Karte sind Start und Ziel jedes Angebots in seiner Farbe eingekreist (rot, blau, grün – wie die Nummer im Brett).
+2. **Zur Start-Hütte**, entweder hinfahren oder über die Karte schnellreisen. Die Hütte ist mit einem Leuchtring am Boden und einem Kreis auf der Karte markiert, beides in der Farbe des Auftrags.
 3. **Im Ring kurz stehen bleiben.** Die Fracht wird geladen, und die Zeit läuft.
 4. **Zum Ziel fahren.** Nach dem Laden ist **keine Schnellreise** mehr erlaubt, sonst scheidet man aus.
    Wenn das Auto Schaden nimmt, leidet auch die Fracht. Glas und Kameras leiden mehr als Brennholz, und ein Überschlag kostet zusätzlich.

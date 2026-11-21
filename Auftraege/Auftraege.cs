@@ -69,6 +69,7 @@ namespace Auftraege
         public bool Weg;         // über das Wegenetz verbunden
         public float StreckeM;   // Weglänge (bei Weg) bzw. Luftlinie (querfeldein)
         public int Lohn;         // bei 100 % Zustand
+        public int Farbe => (int)((uint)Id % 3);
         public int ZeitS;
         public bool Eilig;
     }
@@ -412,7 +413,8 @@ namespace Auftraege
                 }
                 Angebote.Add(new Angebot
                 {
-                    Id = _rnd.Next(1, int.MaxValue),
+                    // Id % 3 = Farbe des Angebots (Position in der Liste) – überträgt die Farbe ohne neues Feld
+                    Id = _rnd.Next(1, int.MaxValue / 3) * 3 + Angebote.Count % 3,
                     Fracht = f.Name,
                     Start = h.Name, StartPos = h.Position,
                     Ziel = z.Name, ZielPos = z.Position,

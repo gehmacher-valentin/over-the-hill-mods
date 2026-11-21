@@ -22,7 +22,7 @@ namespace Auftraege
 {
     public class Mod : MelonMod
     {
-        public const string Version = "0.5.8";
+        public const string Version = "0.5.9";
 
         const float MechanikerRadiusM = 30f;
         const float StillstandMps = 1.5f;
@@ -40,7 +40,6 @@ namespace Auftraege
 
         // Angebots-Punkte auf der Karte (beim Mechaniker): Sprite -> (Nummer, Ziel?, Versatz)
         readonly List<GameObject> _angebotsMarker = new();
-        readonly Dictionary<IntPtr, (int nr, bool ziel, int versatz, int anzahl)> _punktInfo = new();
         string _angebotsSchluessel = "";
         MelonPreferences_Entry<bool> _multiplayer;
 
@@ -144,14 +143,14 @@ namespace Auftraege
             _markiert = soll;
             if (soll == "") return;
 
-            _strahl = Bodenring(pos, soll.StartsWith("S") ? _v.StartRadiusM : _v.ZielRadiusM);
+            _strahl = Bodenring(pos, soll.StartsWith("S") ? _v.StartRadiusM : _v.ZielRadiusM, a.Farbe);
 
             try
             {
                 _kartenMarker = new GameObject("Auftraege_Kartenmarker");
                 _kartenMarker.transform.position = pos;
                 var m = _kartenMarker.AddComponent<MapTrackedTransform>();
-                m.SetIcon(Bleistift.Kreis);
+                m.SetIcon(Bleistift.Kreis(a.Farbe));
                 m.SetUseBackground(false);
                 m.VisibleOnMap = true;
             }
@@ -168,12 +167,11 @@ namespace Auftraege
             _naechsteIconPruefung = Time.realtimeSinceStartup + 0.5f;
             try
             {
-                var kreis = Bleistift.Kreis;
                 foreach (var icon in UnityEngine.Object.FindObjectsOfType<MapIcon>())
                 {
-                    if (icon == null || icon.iconImage == null || icon.iconImage.sprite == null) continue;
-                    if (_punktInfo.TryGetValue(icon.iconImage.sprite.Pointer, out var info)) { NummernPunktAnpassen(icon, info); continue; }
-                    if (icon.iconImage.sprite != kreis) continue;
+                    if (icon == null || icon.iconImage == null) continue;
+                    var kreis = icon.iconImage.sprite;
+                    if (!Bleistift.IstKreis(kreis)) continue;
                     icon.SetBackgroundVisibility(false);
                     icon.iconImage.enabled = false;
                     icon.iconImage.raycastTarget = false;
@@ -198,8 +196,8 @@ namespace Auftraege
             catch (Exception e) { LoggerInstance.Warning("Kartensymbol: " + e.Message); _naechsteIconPruefung += 30f; }
         }
 
-        /// Beim Mechaniker: Start (roter Punkt) und Ziel (weißer Punkt) jedes Angebots mit seiner Nummer
-        /// auf der Karte zeigen. Verschwinden, sobald man wegfährt oder einen Auftrag annimmt.
+        /// Beim Mechaniker: Start und Ziel jedes Angebots mit einem Buntstiftkreis in seiner Farbe
+        /// (rot/blau/grün) auf der Karte. Verschwinden, sobald man wegfährt oder einen Auftrag annimmt.
         void AngebotsMarkerAktualisieren()
         {
             bool zeigen = _amMechaniker && _v.Aktiv == null && _v.Angebote.Count > 0;
@@ -209,80 +207,29 @@ namespace Auftraege
 
             foreach (var go in _angebotsMarker) if (go != null) UnityEngine.Object.Destroy(go);
             _angebotsMarker.Clear();
-            _punktInfo.Clear();
             if (!zeigen) return;
 
             try
             {
-                // Alle Punkte sammeln; gleiche Orte (z. B. zwei Angebote ab derselben Hütte) nebeneinander
-                var punkte = new List<(int nr, Vector3 pos, bool ziel)>();
-                for (int i = 0; i < _v.Angebote.Count && i < 9; i++)
-                {
-                    punkte.Add((i + 1, _v.Angebote[i].StartPos, false));
-                    punkte.Add((i + 1, _v.Angebote[i].ZielPos, true));
-                }
-                bool Gleich(Vector3 x, Vector3 y) => (x - y).sqrMagnitude < 40f * 40f;
-                for (int k = 0; k < punkte.Count; k++)
-                {
-                    var (nr, pos, ziel) = punkte[k];
-                    int versatz = punkte.Take(k).Count(q => Gleich(q.pos, pos));
-                    int anzahl = punkte.Count(q => Gleich(q.pos, pos));
-                    var sp = Bleistift.Punkt(ziel);
-                    _punktInfo[sp.Pointer] = (nr, ziel, versatz, anzahl);
-                    var go = new GameObject($"Auftraege_Angebot{nr}{(ziel ? "Ziel" : "Start")}");
-                    go.transform.position = pos;
-                    var m = go.AddComponent<MapTrackedTransform>();
-                    m.SetIcon(sp);
-                    m.SetUseBackground(false);
-                    m.VisibleOnMap = true;
-                    _angebotsMarker.Add(go);
-                }
+                foreach (var a in _v.Angebote)
+                    foreach (var pos in new[] { a.StartPos, a.ZielPos })
+                    {
+                        var go = new GameObject("Auftraege_Angebot" + a.Farbe);
+                        go.transform.position = pos;
+                        var m = go.AddComponent<MapTrackedTransform>();
+                        m.SetIcon(Bleistift.Kreis(a.Farbe));
+                        m.SetUseBackground(false);
+                        m.VisibleOnMap = true;
+                        _angebotsMarker.Add(go);
+                    }
                 _naechsteIconPruefung = 0;
             }
             catch (Exception e) { LoggerInstance.Warning("Angebots-Marker nicht möglich: " + e.Message); }
         }
 
-        /// Nummernpunkt als eigenes Bild mit Zahl, genau über dem Ortssymbol (ersetzt es optisch).
-        /// Alles ohne Raycast – Klicks und Tooltip gehen weiter an das Ortssymbol darunter.
-        void NummernPunktAnpassen(MapIcon icon, (int nr, bool ziel, int versatz, int anzahl) info)
-        {
-            icon.SetBackgroundVisibility(false);
-            icon.iconImage.enabled = false;
-            icon.iconImage.raycastTarget = false;
-            var rt = icon.rectTransform;
-            rt.SetAsLastSibling();
-            if (rt.Find("Auftraege_Nummer") != null) return;
-
-            float basis = Mathf.Max(rt.rect.width, rt.rect.height, 40f);
-            float groesse = basis * 1.05f;
-            var go = new GameObject("Auftraege_Nummer");
-            var krt = go.AddComponent<RectTransform>();
-            krt.SetParent(rt, false);
-            krt.anchorMin = krt.anchorMax = krt.pivot = new Vector2(0.5f, 0.5f);
-            krt.anchoredPosition = new Vector2((info.versatz - (info.anzahl - 1) / 2f) * groesse * 0.8f, 0f);
-            krt.sizeDelta = Vector2.one * groesse;
-            var img = go.AddComponent<Image>();
-            img.sprite = icon.iconImage.sprite;
-            img.raycastTarget = false;
-
-            var tgo = new GameObject("Zahl");
-            var trt = tgo.AddComponent<RectTransform>();
-            trt.SetParent(krt, false);
-            trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
-            trt.offsetMin = trt.offsetMax = Vector2.zero;
-            var t = tgo.AddComponent<Il2CppTMPro.TextMeshProUGUI>();
-            if (_anzeige.Schrift != null) t.font = _anzeige.Schrift;
-            t.text = info.nr.ToString();
-            t.fontSize = groesse * 0.68f;
-            t.fontStyle = Il2CppTMPro.FontStyles.Bold;
-            t.alignment = Il2CppTMPro.TextAlignmentOptions.Center;
-            t.color = info.ziel ? Bleistift.Rot : Color.white;
-            t.raycastTarget = false;
-        }
-
         /// Leuchtring am Boden im Stil des Spiels: Kopie des CylinderMarkers eines Ortes
         /// (derselbe Ring, den z. B. geschlossene Kisten haben), auf unsere Größe und Gelb gesetzt.
-        GameObject Bodenring(Vector3 pos, float radius)
+        GameObject Bodenring(Vector3 pos, float radius, int farbe)
         {
             try
             {
@@ -299,7 +246,7 @@ namespace Auftraege
                 go.transform.localScale = Vector3.one;
                 go.SetActive(true);
                 var ring = go.GetComponent<CylinderMarker>();
-                var gelb = new Color(1f, 0.82f, 0.25f, 1f);
+                var gelb = Bleistift.Leuchten[farbe % 3];
                 ring.size = new Vector3(radius * 2f, ring.size.y > 0 ? ring.size.y : 8f, radius * 2f);
                 ring.Color = gelb;
                 ring.colorOverride = new Il2CppSystem.Nullable<Color>(gelb);
@@ -316,7 +263,7 @@ namespace Auftraege
             if (_strahl != null) UnityEngine.Object.Destroy(_strahl);
             if (_kartenMarker != null) UnityEngine.Object.Destroy(_kartenMarker);
             foreach (var go in _angebotsMarker) if (go != null) UnityEngine.Object.Destroy(go);
-            _angebotsMarker.Clear(); _punktInfo.Clear(); _angebotsSchluessel = "";
+            _angebotsMarker.Clear(); _angebotsSchluessel = "";
             _strahl = null; _kartenMarker = null; _markiert = "";
         }
 
@@ -393,7 +340,7 @@ namespace Auftraege
                 var a = _v.Angebote[i];
                 var f = Fracht.Nach(a.Fracht);
                 string eilig = a.Eilig ? $"  <color={Rot}>EILIG</color>" : "";
-                zeilen.Add($"<color={Gold}><b>[{i + 1}]</b></color>  <b>{a.Fracht}</b>  <size=80%><color={Grau}>({f.Beschreibung})</color></size>{eilig}\n" +
+                zeilen.Add($"<color={Bleistift.StiftHex[a.Farbe]}><b>[{i + 1}]</b></color>  <b>{a.Fracht}</b>  <size=80%><color={Grau}>({f.Beschreibung})</color></size>{eilig}\n" +
                            $"<size=85%>{a.Start}  →  {a.Ziel}\n" +
                            $"<color={Grau}>{(a.Weg ? $"{a.StreckeM / 1000f:F1} km über Wege" : $"{a.DistanzM / 1000f:F1} km querfeldein")} · {Zeit(a.ZeitS)}</color> · <color={Gold}>{a.Lohn} Pebbles</color></size>");
             }
