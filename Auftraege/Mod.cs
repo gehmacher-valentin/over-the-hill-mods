@@ -15,13 +15,15 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(Auftraege.Mod), "Auftraege", "0.5.4", "Valentin Gehmacher")]
+[assembly: MelonInfo(typeof(Auftraege.Mod), "Auftraege", Auftraege.Mod.Version, "Valentin Gehmacher")]
 [assembly: MelonGame("Funselektor", "over the hill")]
 
 namespace Auftraege
 {
     public class Mod : MelonMod
     {
+        public const string Version = "0.5.5";
+
         const float MechanikerRadiusM = 30f;
         const float StillstandMps = 1.5f;
         const float KreisGroesse = 1.0f;     // Bleistiftkreis so groß, dass er das Ortssymbol umrahmt
@@ -41,6 +43,7 @@ namespace Auftraege
         {
             _v = new Auftragsverwaltung();
             _v.Meldung = m => { _meldung = m; _meldungBis = Time.realtimeSinceStartup + 6f; LoggerInstance.Msg(m); };
+            Netz.Warnung = m => { _meldung = m; _meldungBis = Time.realtimeSinceStartup + 15f; LoggerInstance.Warning(m); };
             var kat = MelonPreferences.CreateCategory("Auftraege");
             _multiplayer = kat.CreateEntry("Multiplayer", true, description: "Aufträge mit Mitspielern teilen (alle brauchen die Mod)");
             LoggerInstance.Msg("Geladen – Auftragsbrett beim Mechaniker, F6 = Stand");

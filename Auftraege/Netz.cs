@@ -31,6 +31,7 @@ namespace Auftraege
         const float PingAbstandS = 8f, PartnerTimeoutS = 30f;
 
         public static Action<int, byte[]> Empfangen; // (Absender-Raw, Daten)
+        public static Action<string> Warnung;        // Einblendung im Spiel
 
         /// Zählt hoch, sobald (wieder) ein Leiter gefunden wurde – dann schickt der Client sein Hallo.
         public static int LeiterVerbindungen { get; private set; }
@@ -136,9 +137,13 @@ namespace Auftraege
             public int Raw;
             public bool Leiter;
             public float ZuletztGehoert;
+            public float GefundenUm;
+            public string ModVersion;     // null = älter als 0.5.5 (schickt keine Version mit)
+            public string GewarntFuer;    // für welche Version schon gewarnt wurde
         }
 
         static readonly Dictionary<ulong, Partner> _partner = new();
+        static readonly HashSet<ulong> _inkompatibelGewarnt = new();
 
         // ---------------- Senden ----------------
 
@@ -172,7 +177,14 @@ namespace Auftraege
             BitConverter.GetBytes(sitzung).CopyTo(paket, 6);
             BitConverter.GetBytes(LokalerSpieler).CopyTo(paket, 10);
             // Byte 14ff.: Daten; beim Ping stattdessen 1 Byte „bin Leiter“
-            if (typ == TypPing) { Array.Resize(ref paket, 15); paket[14] = (byte)(IstLeiter ? 1 : 0); }
+            if (typ == TypPing)
+            {
+                var ver = System.Text.Encoding.UTF8.GetBytes(Mod.Version);
+                Array.Resize(ref paket, 16 + ver.Length);
+                paket[14] = (byte)(IstLeiter ? 1 : 0);
+                paket[15] = (byte)ver.Length;
+                ver.CopyTo(paket, 16);
+            }
             else daten?.CopyTo(paket, 14);
 
             try
@@ -257,10 +269,29 @@ namespace Auftraege
                 MelonLogger.Msg($"[Aufträge] Konvoi-Partner weg: {SpielerName(p.Raw)}");
             }
 
+            VersionenPruefen(jetzt);
+
             if (jetzt >= _naechsterPing)
             {
                 _naechsterPing = jetzt + PingAbstandS;
                 foreach (ulong id in Kandidaten()) Senden(id, TypPing, null);
+            }
+        }
+
+        /// Einmal pro Mitspieler (und Version) warnen, wenn seine Mod-Version anders ist.
+        /// Kurz warten, bis der Spielername bekannt ist.
+        static void VersionenPruefen(float jetzt)
+        {
+            foreach (var p in _partner.Values)
+            {
+                string seine = p.ModVersion ?? "alt";
+                if (seine == Mod.Version || p.GewarntFuer == seine) continue;
+                string name = SpielerName(p.Raw);
+                if (name.StartsWith("Spieler ") && jetzt - p.GefundenUm < 10f) continue;
+                p.GewarntFuer = seine;
+                Warnung?.Invoke(p.ModVersion == null
+                    ? $"<color=#FF6B6B><b>Achtung:</b></color> {name} hat eine ältere Version der Aufträge-Mod (du: v{Mod.Version}) – bitte beide dieselbe Version nutzen!"
+                    : $"<color=#FF6B6B><b>Achtung:</b></color> {name} hat Aufträge-Mod v{p.ModVersion}, du hast v{Mod.Version} – bitte beide dieselbe Version nutzen!");
             }
         }
 
@@ -301,7 +332,8 @@ namespace Auftraege
             if (BitConverter.ToInt32(roh, 0) != Magie) return;
             if (roh[4] != Version)
             {
-                MelonLogger.Warning("[Aufträge] Mitspieler hat eine andere Mod-Version – bitte beide dieselbe Auftraege.dll nutzen.");
+                if (_inkompatibelGewarnt.Add(von))
+                    Warnung?.Invoke("<color=#FF6B6B><b>Achtung:</b></color> Ein Mitspieler hat eine nicht passende Version der Aufträge-Mod – der Konvoi funktioniert so nicht. Bitte beide dieselbe Version nutzen!");
                 return;
             }
             if (BitConverter.ToInt32(roh, 6) != sitzung || von == _eigeneId) return;
@@ -309,7 +341,7 @@ namespace Auftraege
             int raw = BitConverter.ToInt32(roh, 10);
 
             bool neu = !_partner.TryGetValue(von, out var p);
-            if (neu) p = _partner[von] = new Partner { SteamId = von };
+            if (neu) p = _partner[von] = new Partner { SteamId = von, GefundenUm = Time.realtimeSinceStartup };
             p.Raw = raw;
             p.ZuletztGehoert = Time.realtimeSinceStartup;
 
@@ -317,6 +349,8 @@ namespace Auftraege
             {
                 bool warLeiter = p.Leiter;
                 p.Leiter = roh.Length > 14 && roh[14] == 1;
+                p.ModVersion = roh.Length > 16 && roh.Length >= 16 + roh[15]
+                    ? System.Text.Encoding.UTF8.GetString(roh, 16, roh[15]) : null;
                 if (neu)
                 {
                     MelonLogger.Msg($"[Aufträge] Konvoi-Partner gefunden: {SpielerName(raw)}{(p.Leiter ? " (Host)" : "")}");
