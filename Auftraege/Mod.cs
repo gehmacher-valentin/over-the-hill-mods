@@ -22,7 +22,7 @@ namespace Auftraege
 {
     public class Mod : MelonMod
     {
-        public const string Version = "0.5.6";
+        public const string Version = "0.5.7";
 
         const float MechanikerRadiusM = 30f;
         const float StillstandMps = 1.5f;
@@ -40,7 +40,7 @@ namespace Auftraege
 
         // Angebots-Punkte auf der Karte (beim Mechaniker): Sprite -> (Nummer, Ziel?, Versatz)
         readonly List<GameObject> _angebotsMarker = new();
-        readonly Dictionary<IntPtr, (int nr, bool ziel, int versatz)> _punktInfo = new();
+        readonly Dictionary<IntPtr, (int nr, bool ziel, int versatz, int anzahl)> _punktInfo = new();
         string _angebotsSchluessel = "";
         MelonPreferences_Entry<bool> _multiplayer;
 
@@ -214,33 +214,37 @@ namespace Auftraege
 
             try
             {
-                var belegt = new List<Vector3>(); // gleiche Orte (z. B. zwei Angebote ab derselben Hütte) nebeneinander
+                // Alle Punkte sammeln; gleiche Orte (z. B. zwei Angebote ab derselben Hütte) nebeneinander
+                var punkte = new List<(int nr, Vector3 pos, bool ziel)>();
                 for (int i = 0; i < _v.Angebote.Count && i < 9; i++)
                 {
-                    var a = _v.Angebote[i];
-                    foreach (var (pos, ziel) in new[] { (a.StartPos, false), (a.ZielPos, true) })
-                    {
-                        int versatz = belegt.Count(b => (b - pos).sqrMagnitude < 40f * 40f);
-                        belegt.Add(pos);
-                        var sp = Bleistift.Punkt(ziel);
-                        _punktInfo[sp.Pointer] = (i + 1, ziel, versatz);
-                        var go = new GameObject($"Auftraege_Angebot{i + 1}{(ziel ? "Ziel" : "Start")}");
-                        go.transform.position = pos;
-                        var m = go.AddComponent<MapTrackedTransform>();
-                        m.SetIcon(sp);
-                        m.SetUseBackground(false);
-                        m.VisibleOnMap = true;
-                        _angebotsMarker.Add(go);
-                    }
+                    punkte.Add((i + 1, _v.Angebote[i].StartPos, false));
+                    punkte.Add((i + 1, _v.Angebote[i].ZielPos, true));
+                }
+                bool Gleich(Vector3 x, Vector3 y) => (x - y).sqrMagnitude < 40f * 40f;
+                for (int k = 0; k < punkte.Count; k++)
+                {
+                    var (nr, pos, ziel) = punkte[k];
+                    int versatz = punkte.Take(k).Count(q => Gleich(q.pos, pos));
+                    int anzahl = punkte.Count(q => Gleich(q.pos, pos));
+                    var sp = Bleistift.Punkt(ziel);
+                    _punktInfo[sp.Pointer] = (nr, ziel, versatz, anzahl);
+                    var go = new GameObject($"Auftraege_Angebot{nr}{(ziel ? "Ziel" : "Start")}");
+                    go.transform.position = pos;
+                    var m = go.AddComponent<MapTrackedTransform>();
+                    m.SetIcon(sp);
+                    m.SetUseBackground(false);
+                    m.VisibleOnMap = true;
+                    _angebotsMarker.Add(go);
                 }
                 _naechsteIconPruefung = 0;
             }
             catch (Exception e) { LoggerInstance.Warning("Angebots-Marker nicht möglich: " + e.Message); }
         }
 
-        /// Nummernpunkt als eigenes Bild mit Zahl, als „Abzeichen“ oben rechts neben dem Ortssymbol,
-        /// damit das Symbol selbst sichtbar bleibt.
-        void NummernPunktAnpassen(MapIcon icon, (int nr, bool ziel, int versatz) info)
+        /// Nummernpunkt als eigenes Bild mit Zahl, genau über dem Ortssymbol (ersetzt es optisch).
+        /// Alles ohne Raycast – Klicks und Tooltip gehen weiter an das Ortssymbol darunter.
+        void NummernPunktAnpassen(MapIcon icon, (int nr, bool ziel, int versatz, int anzahl) info)
         {
             icon.SetBackgroundVisibility(false);
             icon.iconImage.enabled = false;
@@ -250,12 +254,12 @@ namespace Auftraege
             if (rt.Find("Auftraege_Nummer") != null) return;
 
             float basis = Mathf.Max(rt.rect.width, rt.rect.height, 40f);
-            float groesse = basis * 0.62f;
+            float groesse = basis * 1.05f;
             var go = new GameObject("Auftraege_Nummer");
             var krt = go.AddComponent<RectTransform>();
             krt.SetParent(rt, false);
             krt.anchorMin = krt.anchorMax = krt.pivot = new Vector2(0.5f, 0.5f);
-            krt.anchoredPosition = new Vector2(basis * 0.42f + info.versatz * groesse * 0.95f, basis * 0.42f);
+            krt.anchoredPosition = new Vector2((info.versatz - (info.anzahl - 1) / 2f) * groesse * 0.8f, 0f);
             krt.sizeDelta = Vector2.one * groesse;
             var img = go.AddComponent<Image>();
             img.sprite = icon.iconImage.sprite;
