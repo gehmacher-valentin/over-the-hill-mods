@@ -371,10 +371,13 @@ namespace Auftraege
 
             // Bevorzugt zwei Aufträge über Wege (kurz/lang) und einen querfeldein
             var auswahl = new List<(Ort h, Ort z, float d, Route r)>();
-            bool Frei((Ort h, Ort z, float d, Route r) x) => auswahl.All(s => s.z.Name != x.z.Name);
+            // Kein Ort darf in den Angeboten doppelt vorkommen – weder als Start noch als Ziel
+            static bool GleicherOrt(Ort a, Ort b) => a.Name == b.Name || Flach(a.Position - b.Position) < 60f;
+            bool Frei((Ort h, Ort z, float d, Route r) x) =>
+                auswahl.All(s => !GleicherOrt(s.h, x.h) && !GleicherOrt(s.h, x.z) && !GleicherOrt(s.z, x.h) && !GleicherOrt(s.z, x.z));
             void Nimm(IEnumerable<(Ort h, Ort z, float d, Route r)> quelle)
             {
-                var k = quelle.Where(Frei).OrderBy(x => auswahl.Count(s => s.h.Name == x.h.Name)).FirstOrDefault();
+                var k = quelle.Where(Frei).FirstOrDefault();
                 if (k.z.Name != null) auswahl.Add(k);
             }
             float mitte = (MinDistanzM + MaxDistanzM) / 2f;
