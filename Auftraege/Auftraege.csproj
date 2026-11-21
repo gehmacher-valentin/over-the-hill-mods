@@ -16,6 +16,7 @@
     <Reference Include="$(SpielOrdner)/MelonLoader/net6/Il2CppInterop.Common.dll" Private="false" />
     <Reference Include="$(SpielOrdner)/MelonLoader/net6/0Harmony.dll" Private="false" />
     <Reference Include="$(IL)/Il2Cppmscorlib.dll" Private="false" />
+    <Reference Include="$(IL)/Il2CppFunselektor.FunCore.Runtime.dll" Private="false" />
     <Reference Include="$(IL)/Il2CppSystem.dll" Private="false" />
     <Reference Include="$(IL)/UnityEngine.CoreModule.dll" Private="false" />
     <Reference Include="$(IL)/UnityEngine.UI.dll" Private="false" />

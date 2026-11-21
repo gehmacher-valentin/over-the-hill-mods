@@ -75,6 +75,12 @@ namespace Auftraege
             SchriftUebernehmen();
         }
 
+        /// Ganze Anzeige ein-/ausblenden (z. B. wenn ein Spielmenü offen ist).
+        public void Sichtbar(bool an)
+        {
+            if (_canvas != null && _canvas.activeSelf != an) _canvas.SetActive(an);
+        }
+
         public void Abbauen()
         {
             if (_canvas != null) Object.Destroy(_canvas);

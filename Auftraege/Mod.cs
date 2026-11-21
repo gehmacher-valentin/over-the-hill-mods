@@ -15,7 +15,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
 
-[assembly: MelonInfo(typeof(Auftraege.Mod), "Auftraege", "0.5.3", "Valentin Gehmacher")]
+[assembly: MelonInfo(typeof(Auftraege.Mod), "Auftraege", "0.5.4", "Valentin Gehmacher")]
 [assembly: MelonGame("Funselektor", "over the hill")]
 
 namespace Auftraege
@@ -229,9 +229,32 @@ namespace Auftraege
 
         const string Grau = "#9AA0A6", Gold = "#FFB347", Gruen = "#7FD87F", Rot = "#FF6B6B", Blau = "#6FB7FF";
 
+        string _letzterZustand = "";
+
+        /// Liegt gerade ein Menü des Spiels über dem Fahren (Pause, Einstellungen, Mechaniker/Händler,
+        /// Karte, Dialoge …)? Dann blenden wir unsere Kästen aus. Gefahren wird im Zustand „StateGame“.
+        bool SpielMenuOffen()
+        {
+            try
+            {
+                var gsm = Il2CppFunCore.Managers.GameStateManager.Instance;
+                var st = gsm?.PeekState();
+                if (st == null) return false;
+                string name = st.GetIl2CppType().Name;
+                if (name != _letzterZustand)
+                {
+                    _letzterZustand = name;
+                    LoggerInstance.Msg("[Zustand] " + name);
+                }
+                return name != "StateGame";
+            }
+            catch { return false; }
+        }
+
         void AnzeigeAktualisieren()
         {
             _anzeige.SicherstellenAufgebaut();
+            _anzeige.Sichtbar(!SpielMenuOffen());
 
             if (_meldung != null && Time.realtimeSinceStartup < _meldungBis) _anzeige.Meldung.Zeigen("", _meldung);
             else _anzeige.Meldung.Verstecken();
