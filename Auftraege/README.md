@@ -1,19 +1,17 @@
-# Transportaufträge (Testversion)
+# Transportaufträge
 
 Frachtaufträge zum Pebbles-Verdienen, allein oder im **Konvoi mit Freunden**.
 
-> ⚠️ **Testversion:** Der Einzelspieler ist getestet, der Multiplayer noch nicht. Rückmeldungen sind willkommen.
-
 ## So funktioniert's
 
-1. **Beim Mechaniker (Crazy Günther) anhalten.** Links erscheint das Brett „Frachtaufträge“ mit 3 Angeboten.
+1. **Beim Mechaniker (Crazy Günther) anhalten.** Links erscheint das Brett „Frachtaufträge“ mit bis zu 3 Angeboten.
    **1 / 2 / 3** nimmt einen Auftrag an, **0** holt neue Angebote.
    Auf der Karte sind Start und Ziel jedes Angebots in seiner Farbe eingekreist (rot, blau, grün – wie die Nummer im Brett).
 2. **Zur Start-Hütte**, entweder hinfahren oder über die Karte schnellreisen. Die Hütte ist mit einem Leuchtring am Boden und einem Kreis auf der Karte markiert, beides in der Farbe des Auftrags.
 3. **Im Ring kurz stehen bleiben.** Die Fracht wird geladen, und die Zeit läuft.
 4. **Zum Ziel fahren.** Nach dem Laden ist **keine Schnellreise** mehr erlaubt, sonst scheidet man aus.
    Wenn das Auto Schaden nimmt, leidet auch die Fracht. Glas und Kameras leiden mehr als Brennholz, und ein Überschlag kostet zusätzlich.
-5. **Im Ziel-Ring stehen bleiben.** Die Fracht wird abgeladen, und der Lohn richtet sich nach ihrem Zustand.
+5. **Im Ziel-Ring stehen bleiben.** Die Fracht wird abgeladen, und der Lohn richtet sich nach ihrem Zustand. Eine Abrechnung zeigt, wofür du wie viel bekommst.
 
 **F6** blendet den Stand ein oder aus: Fracht, Zustand, Ziel, Entfernung, Richtung, Restzeit, Konvoi und Kontostand.
 **Entf** (bei eingeblendetem Stand) bricht den Auftrag ab bzw. steigt aus dem Konvoi aus.
@@ -48,3 +46,4 @@ MelonLoader 0.7.3 installieren (siehe [Haupt-README](../README.md)), dann `Auftr
 
 - Die Ortsnamen sind englisch, so wie im Spiel. Auf Kanada-Karte 1 kommen ein paar selbst benannte Ziele an Wegenden dazu (Sägewerk, Bergkamm …).
 - Während ein Auftrag läuft, gibt es keine weiteren Angebote, es läuft immer nur ein Auftrag pro Sitzung.
+- Ausgiebig gespielt ist bisher nur die erste Kanada-Karte. Für die anderen Karten in Kanada und Algerien sind die Orte aus den Spieldaten geprüft.
