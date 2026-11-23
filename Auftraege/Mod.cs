@@ -22,7 +22,7 @@ namespace Auftraege
 {
     public class Mod : MelonMod
     {
-        public const string Version = "0.5.9";
+        public const string Version = "0.5.10";
 
         const float MechanikerRadiusM = 30f;
         const float StillstandMps = 1.5f;
